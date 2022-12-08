@@ -32,6 +32,7 @@ const getStadistics = (req, res) => {
       const totalRestaurants = arrayRatingsResults.length;
       averageRating = averageRating / totalRestaurants;
       let std = getStandardDeviation(arrayRatingsResults);
+
       return res.status(200).json({
         count: totalRestaurants,
         avg: averageRating,
@@ -55,6 +56,7 @@ const getAllRestaurants = (req, res) => {
         results,
       });
     }
+
     return res.status(404).json({
       msg: "There is no restaurants",
     });
