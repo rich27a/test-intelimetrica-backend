@@ -95,6 +95,12 @@ const createRestaurant = (req, res) => {
     lng,
   } = req.body;
 
+  if (rating < 0 || rating > 4) {
+    return res.status(400).json({
+      msg: "Error: rating has to be between 0 and 4",
+    });
+  }
+
   const sql = `INSERT INTO restaurants (id, rating, name, site, 
       email, phone, street, city, state, lat, lng
       )
@@ -123,6 +129,12 @@ const modifyRestaurant = (req, res) => {
   const { id } = req.params;
   const { rating, name, site, email, phone, street, city, state, lat, lng } =
     req.body;
+
+  if (rating < 0 || rating > 4) {
+    return res.status(400).json({
+      msg: "Error: rating has to be between 0 and 4",
+    });
+  }
 
   const sql = `UPDATE restaurants 
                  SET rating = ${rating}, name = '${name}', 
