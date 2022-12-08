@@ -1,86 +1,105 @@
-const express = require("express");
 const { connection } = require("../database/config");
 const {
   getDistanceFromLatLonInKm,
   getStandardDeviation,
 } = require("../helpers/geospatial");
 
-const getStadistics = (req, res) => {
+const getStadistics = async (req, res) => {
   const { latitude, longitude, radius } = req.query;
   let averageRating = 0;
   let arrayRatingsResults = [];
 
   const sql = "SELECT * FROM restaurants";
+  try {
+    const [results] = await connection.execute(sql);
 
-  connection.query(sql, (err, results) => {
-    if (err) throw err;
-    if (results.length > 0) {
-      results.forEach((restaurant) => {
-        if (
-          getDistanceFromLatLonInKm(
-            latitude,
-            longitude,
-            restaurant.lat,
-            restaurant.lng
-          ) < radius
-        ) {
-          averageRating += restaurant.rating;
-          arrayRatingsResults.push(restaurant.rating);
-        }
-      });
-
-      const totalRestaurants = arrayRatingsResults.length;
-      averageRating = averageRating / totalRestaurants;
-      let std = getStandardDeviation(arrayRatingsResults);
-
-      return res.status(200).json({
-        count: totalRestaurants,
-        avg: averageRating,
-        std,
+    if (results.length <= 0) {
+      return res.status(404).json({
+        msg: "There is no restaurants",
       });
     }
-    return res.status(404).json({
-      msg: "There is no restaurants",
+
+    results.forEach((restaurant) => {
+      if (
+        getDistanceFromLatLonInKm(
+          latitude,
+          longitude,
+          restaurant.lat,
+          restaurant.lng
+        ) < radius
+      ) {
+        averageRating += restaurant.rating;
+        arrayRatingsResults.push(restaurant.rating);
+      }
     });
-  });
+
+    const totalRestaurants = arrayRatingsResults.length;
+    averageRating = averageRating / totalRestaurants;
+    let std = getStandardDeviation(arrayRatingsResults);
+
+    return res.status(200).json({
+      count: totalRestaurants,
+      avg: averageRating,
+      std,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      msg: "Error while searching in db",
+      error: error.message,
+    });
+  }
 };
 
-const getAllRestaurants = (req, res) => {
+const getAllRestaurants = async (req, res) => {
   const sql = "SELECT * FROM restaurants";
 
-  connection.query(sql, (err, results) => {
-    if (err) throw err;
-    if (results.length > 0) {
-      return res.status(200).json({
-        count: results.length,
-        results,
+  try {
+    const [results] = await connection.execute(sql);
+
+    if (results.length <= 0) {
+      return res.status(404).json({
+        msg: "There is no restaurants",
       });
     }
 
-    return res.status(404).json({
-      msg: "There is no restaurants",
+    return res.status(200).json({
+      count: results.length,
+      results,
     });
-  });
+  } catch (error) {
+    return res.status(500).json({
+      msg: "Error while searching in db",
+      error: error.message,
+    });
+  }
 };
 
-const getOneRestaurant = (req, res) => {
+const getOneRestaurant = async (req, res) => {
   const { id } = req.params;
   const sql = `SELECT * FROM restaurants WHERE id ='${id}'`;
 
-  connection.query(sql, (err, results) => {
-    if (err) throw err;
-    if (results.length > 0) {
-      return res.status(200).json({
-        results,
+  try {
+    const [results] = await connection.execute(sql);
+
+    if (results.length <= 0) {
+      return res.status(404).json({
+        msg: `There is no restaurant with id ${id}`,
       });
     }
-    return res.status(404).json({
-      msg: `There is no restaurant with id ${id}`,
+
+    return res.status(200).json({
+      results,
     });
-  });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      msg: "Error while searching in db",
+      error: error.message,
+    });
+  }
 };
 
-const createRestaurant = (req, res) => {
+const createRestaurant = async (req, res) => {
   const {
     id,
     rating,
@@ -110,22 +129,27 @@ const createRestaurant = (req, res) => {
       '${state}', ${lat}, ${lng}
       )`;
 
-  connection.query(sql, (err, results) => {
-    if (err)
-      return res.status(500).json({ msg: "Error while creating restaurant" });
-    if (results.affectedRows > 0) {
-      return res.status(200).json({
-        msg: "Restaurant has been created succesfully",
-        results,
+  try {
+    const [results] = await connection.execute(sql);
+
+    if (results.affectedRows <= 0) {
+      return res.status(500).json({
+        msg: `Cannot create restaurant`,
       });
     }
-    return res.status(500).json({
-      msg: `Cannot create restaurant`,
+    return res.status(200).json({
+      msg: "Restaurant has been created succesfully",
+      results,
     });
-  });
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message,
+      msg: "Error while creating restaurant",
+    });
+  }
 };
 
-const modifyRestaurant = (req, res) => {
+const modifyRestaurant = async (req, res) => {
   const { id } = req.params;
   const { rating, name, site, email, phone, street, city, state, lat, lng } =
     req.body;
@@ -144,37 +168,46 @@ const modifyRestaurant = (req, res) => {
                  lat = ${lat}, lng = ${lng}
                  WHERE id = '${id}'`;
 
-  connection.query(sql, (err, results) => {
-    if (err)
-      return res.status(500).json({ msg: "Error while modifying restaurant" });
-    if (results.affectedRows > 0) {
-      return res.status(200).json({
-        msg: "Restaurant has been modified succesfully",
+  try {
+    const [results] = await connection.execute(sql);
+
+    if (results.affectedRows <= 0) {
+      return res.status(404).json({
+        msg: `Restaurant with id ${id} does not exist`,
       });
     }
-    return res.status(404).json({
-      msg: `Restaurant with id ${id} does not exist`,
+    return res.status(200).json({
+      msg: "Restaurant has been modified succesfully",
+      results,
     });
-  });
+  } catch (error) {
+    return res.status(400).json({
+      error: error.message,
+      msg: "Error while modifying restaurant",
+    });
+  }
 };
-const deleteRestaurant = (req, res) => {
+const deleteRestaurant = async (req, res) => {
   const { id } = req.params;
 
   sql = `DELETE FROM restaurants
            WHERE id = '${id}'`;
 
-  connection.query(sql, (err, results) => {
-    if (err)
-      return res.status(500).json({ msg: "Error while deleting restaurant" });
-    if (results.affectedRows > 0) {
-      return res.status(200).json({
-        msg: "Restaurant has been deleted succesfully",
+  try {
+    const [results] = await connection.execute(sql);
+
+    if (results.affectedRows <= 0) {
+      return res.status(404).json({
+        msg: `Restaurant with id ${id} does not exist`,
       });
     }
-    return res.status(404).json({
-      msg: `Restaurant with id ${id} does not exist`,
+    return res.status(200).json({
+      msg: "Restaurant has been deleted succesfully",
+      results,
     });
-  });
+  } catch (error) {
+    return res.status(500).json({ msg: "Error while deleting restaurant" });
+  }
 };
 
 module.exports = {
