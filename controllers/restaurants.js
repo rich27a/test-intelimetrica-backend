@@ -13,6 +13,7 @@ const getStadistics = (req, res) => {
   const sql = "SELECT * FROM restaurants";
 
   connection.query(sql, (err, results) => {
+    connection.destroy();
     if (err) throw err;
     if (results.length > 0) {
       results.forEach((restaurant) => {
@@ -49,6 +50,7 @@ const getAllRestaurants = (req, res) => {
   const sql = "SELECT * FROM restaurants";
 
   connection.query(sql, (err, results) => {
+    connection.destroy();
     if (err) throw err;
     if (results.length > 0) {
       return res.status(200).json({
@@ -68,6 +70,7 @@ const getOneRestaurant = (req, res) => {
   const sql = `SELECT * FROM restaurants WHERE id ='${id}'`;
 
   connection.query(sql, (err, results) => {
+    connection.destroy();
     if (err) throw err;
     if (results.length > 0) {
       return res.status(200).json({
@@ -105,6 +108,8 @@ const createRestaurant = (req, res) => {
       )`;
 
   connection.query(sql, (err, results) => {
+    connection.destroy();
+
     if (err)
       return res.status(500).json({ msg: "Error while creating restaurant" });
     if (results.affectedRows > 0) {
@@ -133,6 +138,8 @@ const modifyRestaurant = (req, res) => {
                  WHERE id = '${id}'`;
 
   connection.query(sql, (err, results) => {
+    connection.destroy();
+
     if (err)
       return res.status(500).json({ msg: "Error while modifying restaurant" });
     if (results.affectedRows > 0) {
@@ -152,6 +159,8 @@ const deleteRestaurant = (req, res) => {
            WHERE id = '${id}'`;
 
   connection.query(sql, (err, results) => {
+    connection.destroy();
+
     if (err)
       return res.status(500).json({ msg: "Error while deleting restaurant" });
     if (results.affectedRows > 0) {
